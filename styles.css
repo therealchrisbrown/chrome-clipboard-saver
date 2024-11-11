@@ -1,0 +1,43 @@
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  padding: 10px;
+  width: 300px;
+}
+  
+  #copied-texts {
+    max-height: 400px;
+    overflow-y: auto;
+  }
+  
+  .copied-item {
+    border-bottom: 1px solid #ddd;
+    padding: 8px 0;
+  }
+  
+  .copied-item p {
+    margin: 0;
+  }
+  
+  .copied-item a {
+    font-size: 0.9em;
+    color: blue;
+  }
+
+  #topic-section {
+    margin-bottom: 10px;
+  }
+  
+  #topic-input {
+    width: 80%;
+    padding: 5px;
+    margin-right: 5px;
+  }
+  
+  #save-topic-button {
+    padding: 5px;
+  }
+
+  #topic-heading {
+    cursor: text;
+    margin-bottom: 10px;
+  }

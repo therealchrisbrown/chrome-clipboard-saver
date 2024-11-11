@@ -7,19 +7,23 @@ document.addEventListener("copy", (event) => {
 
   const sourceUrl = window.location.href;
 
-  // Send the copied text and URL to the background script
-  chrome.runtime.sendMessage(
-    {
-      type: "saveCopy",
-      text: copiedText,
-      url: sourceUrl
-    },
-    (response) => {
-      if (chrome.runtime.lastError) {
-        console.error("Error sending message:", chrome.runtime.lastError);
-      } else if (response && response.status === "success") {
-        console.log("Copied text saved successfully.");
+  // Check if chrome.runtime is defined before sending a message
+  if (chrome.runtime) {
+    chrome.runtime.sendMessage(
+      {
+        type: "saveCopy",
+        text: copiedText,
+        url: sourceUrl
+      },
+      (response) => {
+        if (chrome.runtime.lastError) {
+          console.error("Error sending message:", chrome.runtime.lastError.message);
+        } else if (response && response.status === "success") {
+          console.log("Copied text saved successfully.");
+        }
       }
-    }
-  );
+    );
+  } else {
+    console.warn("Chrome runtime is not available. The extension context may be invalidated.");
+  }
 });

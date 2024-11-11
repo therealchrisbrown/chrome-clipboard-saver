@@ -8,7 +8,23 @@
   <!-- Editable Topic -->
   <h1 id="topic-heading" contenteditable="true">Enter collection topic</h1>
 
+  <!-- Search bar -->
+  <input type="text" id="search-bar" placeholder="Search copied texts...">
+
+  <!-- Sort options -->
+  <select id="sort-select">
+    <option value="newest">Newest First</option>
+    <option value="oldest">Oldest First</option>
+  </select>
+
+  <!-- Container for copied texts -->
   <div id="copied-texts"></div>
+
+  <!-- Clear all button -->
+  <button id="clear-all">Clear All</button>
+
+  <!-- Export button -->
+  <button id="export-button">Export</button>
 
   <script src="popup.js"></script>
 </body>

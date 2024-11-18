@@ -3,6 +3,30 @@ chrome.runtime.onInstalled.addListener(() => {
   chrome.storage.local.set({ copiedItems: [] });
 });
 
+// Function to save text to database
+async function saveToDatabase(text, sourceUrl) {
+  try {
+    const response = await fetch('http://localhost:5000/api/clipboard', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        content: text,
+        source_url: sourceUrl
+      })
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to save to database');
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error saving to database:', error);
+  }
+}
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === "saveCopy") {
     // Retrieve and update the copied items
@@ -24,5 +48,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     
     // Required for asynchronous sendResponse
     return true;
+  } else if (message.action === 'saveText') {
+    saveToDatabase(message.text, sender.tab?.url || '')
+      .then(result => sendResponse({ success: true, data: result }))
+      .catch(error => sendResponse({ success: false, error: error.message }));
+    return true; // Required for async response
   }
 });

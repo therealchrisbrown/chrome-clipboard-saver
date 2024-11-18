@@ -1,43 +1,95 @@
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  padding: 10px;
-  width: 300px;
+  width: 400px;
+  min-height: 300px;
+  margin: 0;
+  padding: 16px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
 }
-  
-  #copied-texts {
-    max-height: 400px;
-    overflow-y: auto;
-  }
-  
-  .copied-item {
-    border-bottom: 1px solid #ddd;
-    padding: 8px 0;
-  }
-  
-  .copied-item p {
-    margin: 0;
-  }
-  
-  .copied-item a {
-    font-size: 0.9em;
-    color: blue;
-  }
 
-  #topic-section {
-    margin-bottom: 10px;
-  }
-  
-  #topic-input {
-    width: 80%;
-    padding: 5px;
-    margin-right: 5px;
-  }
-  
-  #save-topic-button {
-    padding: 5px;
-  }
+.container {
+  padding: 8px;
+}
 
-  #topic-heading {
-    cursor: text;
-    margin-bottom: 10px;
-  }
+h2 {
+  margin: 0 0 16px 0;
+  color: #333;
+  font-size: 18px;
+}
+
+.copied-items {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.copied-item {
+  background: #f5f5f5;
+  border-radius: 4px;
+  padding: 12px;
+  margin-bottom: 8px;
+  position: relative;
+}
+
+.copied-item:hover {
+  background: #eeeeee;
+}
+
+.copied-text {
+  margin-bottom: 8px;
+  word-break: break-word;
+}
+
+.meta-info {
+  font-size: 12px;
+  color: #666;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.source-url {
+  color: #0066cc;
+  text-decoration: none;
+  max-width: 250px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.timestamp {
+  color: #888;
+}
+
+.delete-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: none;
+  border: none;
+  color: #ff4444;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.copied-item:hover .delete-btn {
+  opacity: 1;
+}
+
+#topic-section {
+  margin-bottom: 10px;
+}
+
+#topic-input {
+  width: 80%;
+  padding: 5px;
+  margin-right: 5px;
+}
+
+#save-topic-button {
+  padding: 5px;
+}
+
+#topic-heading {
+  cursor: text;
+  margin-bottom: 10px;
+}

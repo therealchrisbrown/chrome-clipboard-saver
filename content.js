@@ -1,29 +1,17 @@
 document.addEventListener("copy", (event) => {
-  const copiedText = document.getSelection().toString();
-  if (!copiedText) {
-    console.warn("No text selected to copy.");
-    return;
-  }
-
-  const sourceUrl = window.location.href;
-
-  // Check if chrome.runtime is defined before sending a message
-  if (chrome.runtime) {
-    chrome.runtime.sendMessage(
-      {
-        type: "saveCopy",
-        text: copiedText,
-        url: sourceUrl
-      },
-      (response) => {
-        if (chrome.runtime.lastError) {
-          console.error("Error sending message:", chrome.runtime.lastError.message);
-        } else if (response && response.status === "success") {
-          console.log("Copied text saved successfully.");
-        }
+  const selectedText = window.getSelection().toString().trim();
+  
+  if (selectedText) {
+    // Send to background script for storage
+    chrome.runtime.sendMessage({
+      action: 'saveText',
+      text: selectedText
+    }, (response) => {
+      if (response && response.success) {
+        console.log('Text saved to database successfully');
+      } else {
+        console.error('Failed to save text to database');
       }
-    );
-  } else {
-    console.warn("Chrome runtime is not available. The extension context may be invalidated.");
+    });
   }
 });

@@ -1,19 +1,26 @@
 {
   "manifest_version": 3,
-  "name": "Clipboard Saver",
+  "name": "Text Copy Storage",
   "version": "1.0",
-  "description": "Saves copied text along with its source URL.",
-  "permissions": ["clipboardRead", "storage", "activeTab", "scripting"],
+  "description": "Store copied text with SQLite database",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "http://localhost:5000/*"
+  ],
   "background": {
     "service_worker": "background.js"
-  },
-  "action": {
-    "default_popup": "popup.html"
   },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
       "js": ["content.js"]
     }
-  ]
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  }
 }

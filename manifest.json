@@ -4,12 +4,11 @@
   "version": "1.0",
   "description": "Store copied text with SQLite database",
   "permissions": [
-    "storage",
     "activeTab",
-    "scripting"
+    "clipboardRead"
   ],
   "host_permissions": [
-    "http://localhost:5000/*"
+    "http://localhost:5001/*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -22,5 +21,12 @@
   ],
   "action": {
     "default_popup": "popup.html"
-  }
+  },
+  "web_accessible_resources": [{
+    "resources": [
+      "popup.html",
+      "sessions.html"
+    ],
+    "matches": ["<all_urls>"]
+  }]
 }

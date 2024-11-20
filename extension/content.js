@@ -101,15 +101,50 @@ sessionsButton.addEventListener('click', () => {
 });
 
 // Listen for copy events
-document.addEventListener('copy', function(e) {
-  const selectedText = window.getSelection().toString().trim();
-  if (selectedText) {
-    chrome.runtime.sendMessage({
-      action: 'saveText',
-      text: selectedText
-    }, function(response) {
-      console.log('Response from background:', response);
+document.addEventListener('copy', async (e) => {
+  try {
+    // Get the copied text
+    const selection = window.getSelection();
+    const text = selection.toString().trim();
+    
+    if (!text) return; // Don't process empty selections
+    
+    // Get the current URL
+    const url = window.location.href;
+    
+    // Send the copied text to the background script
+    const response = await fetch('http://localhost:5001/api/clipboard', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Origin': chrome.runtime.getURL('')
+      },
+      mode: 'cors',
+      credentials: 'omit',
+      body: JSON.stringify({
+        content: text,
+        source_url: url
+      })
     });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    console.log('Clipboard item saved:', data);
+    
+  } catch (error) {
+    console.error('Error saving clipboard item:', error);
+  }
+});
+
+// Listen for messages from the background script
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === "getSelection") {
+    const selection = window.getSelection();
+    const text = selection.toString().trim();
+    sendResponse({ text });
   }
 });
 

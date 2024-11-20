@@ -5,7 +5,7 @@ import { Button } from './components/ui/button'
 import { Input } from './components/ui/input'
 import { Trash2, ExternalLink, Save, Edit2 } from 'lucide-react'
 
-const API_URL = 'http://localhost:5000';
+const API_URL = 'http://localhost:5001';
 
 function App() {
   const [copiedItems, setCopiedItems] = useState([]);
@@ -20,7 +20,8 @@ function App() {
       const response = await fetch(`${API_URL}/api/clipboard`, {
         method: 'GET',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Origin': 'http://localhost:3000'
         },
         mode: 'cors',
         credentials: 'omit'
@@ -62,6 +63,9 @@ function App() {
     try {
       const response = await fetch(`${API_URL}/api/clipboard/${id}`, {
         method: 'DELETE',
+        headers: {
+          'Origin': 'http://localhost:3000'
+        },
         mode: 'cors',
         credentials: 'omit'
       });
@@ -90,7 +94,8 @@ function App() {
       const response = await fetch(`${API_URL}/api/session/title`, {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Origin': 'http://localhost:3000'
         },
         mode: 'cors',
         credentials: 'omit',
@@ -119,7 +124,8 @@ function App() {
       const response = await fetch(`${API_URL}/api/session/end`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Origin': 'http://localhost:3000'
         },
         mode: 'cors',
         credentials: 'omit',

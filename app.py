@@ -12,15 +12,15 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
-# Configure CORS
-CORS(app, resources={
-    r"/*": {
-        "origins": ["*", "chrome-extension://*"],
-        "methods": ["GET", "POST", "DELETE", "PUT", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Authorization"],
-        "supports_credentials": True
-    }
-})
+# Configure CORS - Allow requests from Chrome extension and localhost
+CORS(app, 
+     resources={r"/*": {
+         "origins": ["*"],  # Allow all origins, we'll filter in after_request
+         "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+         "allow_headers": ["Content-Type", "Authorization", "Origin"],
+         "supports_credentials": False,  # Changed to False since we're not using credentials
+         "send_wildcard": True
+     }})
 
 # Configure the SQLite database
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -39,12 +39,23 @@ class ClipboardItem(db.Model):
 with app.app_context():
     db.create_all()
 
+@app.before_request
+def handle_preflight():
+    if request.method == "OPTIONS":
+        response = app.make_default_options_response()
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,Origin')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+        response.headers.add('Access-Control-Allow-Credentials', 'true')
+        return response
+
 @app.after_request
 def after_request(response):
+    # Allow all origins for now (you can restrict this in production)
     response.headers.add('Access-Control-Allow-Origin', '*')
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,Origin')
     response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
-    response.headers.add('Access-Control-Allow-Credentials', 'true')
+    response.headers.add('Access-Control-Max-Age', '3600')
     return response
 
 @app.route('/api/clipboard', methods=['GET'])

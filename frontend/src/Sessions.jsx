@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Button } from './components/ui/button';
 import { ScrollArea } from './components/ui/scroll-area';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './components/ui/collapsible';
 import { ChevronRight, RefreshCcw, Trash2 } from 'lucide-react';
 
-const API_URL = 'http://localhost:5000';
+const API_URL = 'http://localhost:5001';
 
 export default function Sessions() {
   const [sessions, setSessions] = useState([]);
@@ -13,7 +12,6 @@ export default function Sessions() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [openGroups, setOpenGroups] = useState(new Set());
 
   useEffect(() => {
     fetchSessions();
@@ -25,7 +23,8 @@ export default function Sessions() {
       const response = await fetch(`${API_URL}/api/sessions`, {
         method: 'GET',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Origin': chrome.runtime.getURL('')
         },
         mode: 'cors',
         credentials: 'omit'
@@ -55,7 +54,8 @@ export default function Sessions() {
       const response = await fetch(`${API_URL}/api/sessions/${encodeURIComponent(filepath)}`, {
         method: 'GET',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Origin': chrome.runtime.getURL('')
         },
         mode: 'cors',
         credentials: 'omit'
@@ -92,6 +92,9 @@ export default function Sessions() {
       setLoading(true);
       const response = await fetch(`${API_URL}/api/sessions/${encodeURIComponent(path)}`, {
         method: 'DELETE',
+        headers: {
+          'Origin': chrome.runtime.getURL('')
+        },
         mode: 'cors',
         credentials: 'omit'
       });
@@ -125,139 +128,105 @@ export default function Sessions() {
     }
   };
 
-  const toggleGroup = (group) => {
-    const newOpenGroups = new Set(openGroups);
-    if (newOpenGroups.has(group)) {
-      newOpenGroups.delete(group);
-    } else {
-      newOpenGroups.add(group);
-    }
-    setOpenGroups(newOpenGroups);
-  };
-
-  const formatDate = (timestamp) => {
-    return new Date(timestamp * 1000).toLocaleString();
-  };
-
-  const formatSize = (size) => {
-    const units = ['B', 'KB', 'MB', 'GB'];
-    let value = size;
-    let unit = 0;
-    while (value > 1024 && unit < units.length - 1) {
-      value /= 1024;
-      unit++;
-    }
-    return `${value.toFixed(1)} ${units[unit]}`;
-  };
-
   return (
-    <div className="h-screen flex flex-col">
-      <div className="flex justify-between items-center p-4 border-b">
-        <h1 className="text-xl font-semibold">Saved Sessions</h1>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setRefreshKey(prev => prev + 1)}
-          disabled={loading}
-        >
-          <RefreshCcw className="h-4 w-4" />
-        </Button>
-      </div>
-
-      {error && (
-        <div className={`${
-          error.type === 'success' ? 'bg-green-100 border-green-400 text-green-700' : 'bg-red-100 border-red-400 text-red-700'
-        } px-4 py-3 rounded m-4 text-sm border`}>
-          {error.message}
+    <div className="p-4 h-screen flex">
+      <div className="w-1/3 pr-4 flex flex-col">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold">Sessions</h2>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setRefreshKey(prev => prev + 1)}
+            disabled={loading}
+          >
+            <RefreshCcw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          </Button>
         </div>
-      )}
-
-      <div className="flex flex-1 min-h-0">
-        {/* Sessions List */}
-        <div className="w-1/3 border-r overflow-hidden flex flex-col">
-          <ScrollArea className="flex-1">
-            {loading && <div className="p-4 text-gray-500">Loading...</div>}
-            
-            {!loading && sessions.length === 0 && (
-              <div className="p-4 text-gray-500">No saved sessions found</div>
-            )}
-
-            {sessions.map(group => (
-              <Collapsible
-                key={group.name}
-                open={openGroups.has(group.name)}
-                className="border-b"
-              >
-                <CollapsibleTrigger
-                  className="flex items-center justify-between w-full p-2 hover:bg-gray-100 group"
-                  onClick={() => toggleGroup(group.name)}
+        
+        <ScrollArea className="flex-1 -mx-4">
+          <div className="px-4">
+            {sessions.map((session) => (
+              <div key={session.path} className="mb-4">
+                <div
+                  className="flex items-center justify-between p-2 bg-gray-100 rounded cursor-pointer hover:bg-gray-200"
+                  onClick={() => fetchFileContent(session.files[0].path)}
                 >
                   <div className="flex items-center">
-                    <ChevronRight
-                      className={`h-4 w-4 mr-2 transition-transform ${
-                        openGroups.has(group.name) ? 'transform rotate-90' : ''
-                      }`}
-                    />
-                    <span className="font-medium">{group.name}</span>
+                    <ChevronRight className="h-4 w-4 mr-2" />
+                    <span>{session.name}</span>
                   </div>
                   <Button
                     variant="ghost"
-                    size="sm"
-                    onClick={(e) => deleteSession(group.name, e, true)}
-                    className="opacity-0 group-hover:opacity-100 hover:bg-red-100 hover:text-red-600"
+                    size="icon"
+                    onClick={(e) => deleteSession(session.path, e, true)}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
-                </CollapsibleTrigger>
+                </div>
                 
-                <CollapsibleContent>
-                  {group.files.map(file => (
+                <div className="ml-6 mt-2">
+                  {session.files.map((file) => (
                     <div
                       key={file.path}
                       onClick={() => fetchFileContent(file.path)}
-                      className={`flex items-center justify-between p-2 pl-8 hover:bg-gray-100 cursor-pointer ${
-                        selectedFile === file.path ? 'bg-blue-50' : ''
-                      }`}
+                      className={`
+                        flex items-center justify-between p-2 rounded cursor-pointer
+                        ${selectedFile === file.path ? 'bg-blue-100' : 'hover:bg-gray-100'}
+                      `}
                     >
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm truncate">{file.name}</div>
-                        <div className="text-xs text-gray-500">
-                          {formatDate(file.modified)} • {formatSize(file.size)}
+                      <div className="flex-1">
+                        <div>{file.name}</div>
+                        <div className="text-sm text-gray-500">
+                          {new Date(file.modified * 1000).toLocaleString()}
                         </div>
                       </div>
                       <Button
                         variant="ghost"
-                        size="sm"
+                        size="icon"
                         onClick={(e) => deleteSession(file.path, e)}
-                        className="opacity-0 group-hover:opacity-100 hover:bg-red-100 hover:text-red-600"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   ))}
-                </CollapsibleContent>
-              </Collapsible>
+                </div>
+              </div>
             ))}
-          </ScrollArea>
-        </div>
-
-        {/* Content View */}
-        <div className="flex-1 overflow-hidden flex flex-col">
-          <ScrollArea className="flex-1 p-4">
-            {loading && <div className="text-gray-500">Loading content...</div>}
             
-            {!loading && !selectedFile && (
-              <div className="text-gray-500">Select a session file to view its content</div>
+            {sessions.length === 0 && !loading && (
+              <div className="text-center text-gray-500 mt-4">
+                No saved sessions found
+              </div>
             )}
-            
-            {!loading && selectedFile && fileContent && (
-              <pre className="text-sm whitespace-pre-wrap font-mono bg-gray-50 p-4 rounded-lg">
-                {fileContent}
-              </pre>
-            )}
-          </ScrollArea>
-        </div>
+          </div>
+        </ScrollArea>
       </div>
+      
+      <div className="w-2/3 pl-4 border-l">
+        <h2 className="text-xl font-semibold mb-4">File Content</h2>
+        <ScrollArea className="h-[calc(100vh-8rem)]">
+          {fileContent ? (
+            <pre className="whitespace-pre-wrap font-mono text-sm">
+              {fileContent}
+            </pre>
+          ) : (
+            <div className="text-center text-gray-500 mt-4">
+              Select a file to view its content
+            </div>
+          )}
+        </ScrollArea>
+      </div>
+      
+      {error && (
+        <div
+          className={`
+            fixed bottom-4 right-4 p-4 rounded-lg shadow-lg
+            ${error.type === 'error' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}
+          `}
+        >
+          {error.message}
+        </div>
+      )}
     </div>
   );
 }

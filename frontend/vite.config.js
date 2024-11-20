@@ -2,6 +2,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
 
+// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
   build: {
@@ -9,8 +10,8 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       input: {
-        index: './index.html',
-        sessions: './sessions.html'
+        index: path.resolve(__dirname, 'index.html'),
+        sessions: path.resolve(__dirname, 'sessions.html')
       },
       output: {
         entryFileNames: 'assets/[name].js',
@@ -19,6 +20,7 @@ export default defineConfig({
       }
     }
   },
+  base: '/dist/',
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

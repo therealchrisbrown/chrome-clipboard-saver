@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from datetime import datetime
@@ -6,21 +6,26 @@ import os
 import logging
 import json
 
-app = Flask(__name__)
-CORS(app)
-
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-# Configure SQLite database
+app = Flask(__name__)
+
+# Configure CORS
+CORS(app, resources={
+    r"/*": {
+        "origins": ["*", "chrome-extension://*"],
+        "methods": ["GET", "POST", "DELETE", "PUT", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"],
+        "supports_credentials": True
+    }
+})
+
+# Configure the SQLite database
 basedir = os.path.abspath(os.path.dirname(__file__))
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'clipboard.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-# Create sessions directory if it doesn't exist
-SESSIONS_DIR = os.path.join(basedir, 'sessions')
-os.makedirs(SESSIONS_DIR, exist_ok=True)
 
 db = SQLAlchemy(app)
 
@@ -29,189 +34,225 @@ class ClipboardItem(db.Model):
     content = db.Column(db.Text, nullable=False)
     source_url = db.Column(db.String(500))
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
-    session_title = db.Column(db.String(200), default="Untitled Session")
+    session_title = db.Column(db.String(100), default="Untitled Session")
 
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'content': self.content,
-            'source_url': self.source_url,
-            'timestamp': self.timestamp.isoformat(),
-            'session_title': self.session_title
-        }
-
-# Create database tables
 with app.app_context():
     db.create_all()
+
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    response.headers.add('Access-Control-Allow-Credentials', 'true')
+    return response
 
 @app.route('/api/clipboard', methods=['GET'])
 def get_clipboard_items():
     try:
         items = ClipboardItem.query.order_by(ClipboardItem.timestamp.desc()).all()
-        items_dict = [item.to_dict() for item in items]
-        logger.debug(f"Returning {len(items_dict)} items")
-        return jsonify(items_dict)
+        return jsonify([{
+            'id': item.id,
+            'content': item.content,
+            'source_url': item.source_url,
+            'timestamp': item.timestamp.isoformat(),
+            'session_title': item.session_title
+        } for item in items])
     except Exception as e:
         logger.error(f"Error in get_clipboard_items: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/clipboard', methods=['POST'])
-def save_clipboard():
+def add_clipboard_item():
     try:
         data = request.get_json()
-        logger.debug(f"Received POST data: {data}")
+        logger.debug(f"Received clipboard data: {data}")
         
         if not data or 'content' not in data:
             return jsonify({'error': 'No content provided'}), 400
-        
-        # Get the current session title from the most recent item
-        current_title = "Untitled Session"
-        latest_item = ClipboardItem.query.order_by(ClipboardItem.timestamp.desc()).first()
-        if latest_item:
-            current_title = latest_item.session_title
-        
+            
         new_item = ClipboardItem(
             content=data['content'],
             source_url=data.get('source_url', ''),
-            session_title=current_title  # Use the current session title
+            session_title=data.get('session_title', 'Untitled Session')
         )
         
         db.session.add(new_item)
         db.session.commit()
         
-        return jsonify(new_item.to_dict()), 201
+        return jsonify({
+            'id': new_item.id,
+            'content': new_item.content,
+            'source_url': new_item.source_url,
+            'timestamp': new_item.timestamp.isoformat(),
+            'session_title': new_item.session_title
+        }), 201
     except Exception as e:
-        logger.error(f"Error in save_clipboard: {str(e)}")
+        logger.error(f"Error in add_clipboard_item: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/clipboard/<int:item_id>', methods=['DELETE'])
-def delete_clipboard_item(item_id):
+@app.route('/api/clipboard/<int:id>', methods=['DELETE'])
+def delete_clipboard_item(id):
     try:
-        logger.debug(f"Attempting to delete item {item_id}")
-        item = ClipboardItem.query.get_or_404(item_id)
+        item = ClipboardItem.query.get_or_404(id)
         db.session.delete(item)
         db.session.commit()
-        logger.debug(f"Successfully deleted item {item_id}")
-        return jsonify({'message': 'Item deleted successfully'}), 200
+        return '', 204
     except Exception as e:
-        logger.error(f"Error deleting item {item_id}: {str(e)}")
+        logger.error(f"Error in delete_clipboard_item: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/session/title', methods=['PUT'])
 def update_session_title():
     try:
         data = request.get_json()
-        new_title = data.get('title')
-        logger.debug(f"Updating session title to: {new_title}")
-        
-        if not new_title:
+        if not data or 'title' not in data:
             return jsonify({'error': 'No title provided'}), 400
             
-        # Update all items without a saved session
-        items = ClipboardItem.query.all()  # Update all items to maintain consistency
+        new_title = data['title']
+        items = ClipboardItem.query.all()
+        
         for item in items:
             item.session_title = new_title
-        
+            
         db.session.commit()
-        logger.debug(f"Successfully updated session title")
         return jsonify({'message': 'Session title updated successfully'}), 200
     except Exception as e:
-        logger.error(f"Error updating session title: {str(e)}")
+        logger.error(f"Error in update_session_title: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/session/end', methods=['POST'])
 def end_session():
     try:
         data = request.get_json()
-        session_title = data.get('title', 'Untitled Session')
+        title = data.get('title', 'Untitled Session')
         
-        # Get all items for this session
-        items = ClipboardItem.query.filter_by(session_title=session_title).all()
+        # Create sessions directory if it doesn't exist
+        sessions_dir = os.path.join(basedir, 'sessions')
+        if not os.path.exists(sessions_dir):
+            os.makedirs(sessions_dir)
+        
+        # Create session directory
+        session_dir = os.path.join(sessions_dir, title)
+        if not os.path.exists(session_dir):
+            os.makedirs(session_dir)
+        
+        # Get items for current session
+        items = ClipboardItem.query.filter_by(session_title=title).order_by(ClipboardItem.timestamp.desc()).all()
         
         if not items:
             return jsonify({'message': 'No items to save'}), 200
-            
-        # Create session directory
-        session_dir = os.path.join(SESSIONS_DIR, session_title)
-        os.makedirs(session_dir, exist_ok=True)
         
-        # Save items to file
+        # Create filename with timestamp
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = f"session_{timestamp}.txt"
+        filename = f"{title}_{timestamp}.txt"
         filepath = os.path.join(session_dir, filename)
         
-        with open(filepath, 'w', encoding='utf-8') as f:
-            f.write(f"Session: {session_title}\n")
-            f.write(f"Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+        # Write items to file
+        with open(filepath, 'w') as f:
             for item in items:
-                f.write(f"--- Entry from {item.timestamp.strftime('%Y-%m-%d %H:%M:%S')} ---\n")
-                f.write(f"Source: {item.source_url}\n")
-                f.write(f"Content:\n{item.content}\n\n")
+                f.write(f"Content: {item.content}\n")
+                f.write(f"Source URL: {item.source_url}\n")
+                f.write(f"Timestamp: {item.timestamp}\n")
+                f.write("-" * 80 + "\n")
         
-        # Delete items from database
+        # Clear items from database
         for item in items:
             db.session.delete(item)
         db.session.commit()
         
         return jsonify({
-            'message': 'Session ended and saved successfully',
+            'message': 'Session saved successfully',
             'filepath': filepath
         }), 200
     except Exception as e:
-        logger.error(f"Error ending session: {str(e)}")
+        logger.error(f"Error in end_session: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/sessions', methods=['GET'])
-def get_saved_sessions():
+def get_sessions():
     try:
+        sessions_dir = os.path.join(basedir, 'sessions')
+        if not os.path.exists(sessions_dir):
+            return jsonify([])
+            
         sessions = []
-        # List all directories in the sessions folder
-        for session_name in os.listdir(SESSIONS_DIR):
-            session_path = os.path.join(SESSIONS_DIR, session_name)
-            if os.path.isdir(session_path):
-                # Get all files in the session directory
-                session_files = []
-                for file in os.listdir(session_path):
-                    if file.endswith('.txt'):
-                        file_path = os.path.join(session_path, file)
-                        session_files.append({
-                            'filename': file,
-                            'path': file_path,
-                            'modified': datetime.fromtimestamp(os.path.getmtime(file_path)).isoformat(),
-                            'size': os.path.getsize(file_path)
-                        })
+        for root, dirs, files in os.walk(sessions_dir):
+            rel_path = os.path.relpath(root, sessions_dir)
+            if rel_path == '.':
+                continue
                 
-                if session_files:  # Only include sessions that have files
-                    sessions.append({
-                        'title': session_name,
-                        'files': sorted(session_files, key=lambda x: x['modified'], reverse=True)
+            session = {
+                'name': os.path.basename(root),
+                'path': rel_path,
+                'files': []
+            }
+            
+            for file in files:
+                if file.endswith('.txt'):
+                    file_path = os.path.join(root, file)
+                    session['files'].append({
+                        'name': file,
+                        'path': os.path.join(rel_path, file),
+                        'size': os.path.getsize(file_path),
+                        'modified': os.path.getmtime(file_path)
                     })
-        
-        return jsonify(sorted(sessions, key=lambda x: x['files'][0]['modified'], reverse=True))
+                    
+            if session['files']:
+                sessions.append(session)
+                
+        return jsonify(sessions)
     except Exception as e:
-        logger.error(f"Error getting saved sessions: {str(e)}")
+        logger.error(f"Error in get_sessions: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/sessions/<path:filepath>', methods=['GET'])
-def get_session_content(filepath):
+def get_session_file(filepath):
     try:
-        # Ensure the file is within the sessions directory
-        abs_path = os.path.abspath(os.path.join(SESSIONS_DIR, filepath))
-        if not abs_path.startswith(os.path.abspath(SESSIONS_DIR)):
-            return jsonify({'error': 'Invalid file path'}), 403
+        sessions_dir = os.path.join(basedir, 'sessions')
+        file_path = os.path.join(sessions_dir, filepath)
         
-        if not os.path.exists(abs_path):
+        # Validate the file path
+        if not os.path.commonprefix([os.path.abspath(file_path), sessions_dir]).startswith(sessions_dir):
+            return jsonify({'error': 'Invalid file path'}), 400
+            
+        if not os.path.exists(file_path):
             return jsonify({'error': 'File not found'}), 404
             
-        with open(abs_path, 'r', encoding='utf-8') as f:
+        with open(file_path, 'r') as f:
             content = f.read()
             
-        return jsonify({
-            'content': content,
-            'filename': os.path.basename(filepath)
-        })
+        return jsonify({'content': content})
     except Exception as e:
-        logger.error(f"Error reading session file: {str(e)}")
+        logger.error(f"Error in get_session_file: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/sessions/<path:filepath>', methods=['DELETE'])
+def delete_session(filepath):
+    try:
+        sessions_dir = os.path.join(basedir, 'sessions')
+        path = os.path.join(sessions_dir, filepath)
+        
+        # Validate the file path
+        if not os.path.commonprefix([os.path.abspath(path), sessions_dir]).startswith(sessions_dir):
+            return jsonify({'error': 'Invalid file path'}), 400
+            
+        if not os.path.exists(path):
+            return jsonify({'error': 'Path not found'}), 404
+            
+        if os.path.isfile(path):
+            os.remove(path)
+        else:
+            for root, dirs, files in os.walk(path, topdown=False):
+                for name in files:
+                    os.remove(os.path.join(root, name))
+                for name in dirs:
+                    os.rmdir(os.path.join(root, name))
+            os.rmdir(path)
+            
+        return '', 204
+    except Exception as e:
+        logger.error(f"Error in delete_session: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/test', methods=['GET'])

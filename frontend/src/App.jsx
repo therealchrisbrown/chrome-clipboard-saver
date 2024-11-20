@@ -5,7 +5,7 @@ import { Button } from './components/ui/button'
 import { Input } from './components/ui/input'
 import { Trash2, ExternalLink, Save, Edit2 } from 'lucide-react'
 
-const API_URL = 'http://localhost:5001';
+const API_URL = 'http://localhost:5000';
 
 function App() {
   const [copiedItems, setCopiedItems] = useState([]);
@@ -17,10 +17,19 @@ function App() {
 
   const fetchCopiedItems = useCallback(async () => {
     try {
-      const response = await fetch(`${API_URL}/api/clipboard`);
+      const response = await fetch(`${API_URL}/api/clipboard`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        mode: 'cors',
+        credentials: 'omit'
+      });
+      
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
+      
       const data = await response.json();
       setCopiedItems(data);
       
@@ -36,7 +45,10 @@ function App() {
       setError(null);
     } catch (error) {
       console.error('Error fetching items:', error);
-      setError('Failed to fetch items');
+      setError({
+        type: 'error',
+        message: error.message || 'Failed to fetch items'
+      });
     }
   }, [sessionTitle, lastSavedTitle]);
 
@@ -49,7 +61,9 @@ function App() {
   const deleteItem = async (id) => {
     try {
       const response = await fetch(`${API_URL}/api/clipboard/${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        mode: 'cors',
+        credentials: 'omit'
       });
       
       if (!response.ok) {
@@ -60,7 +74,10 @@ function App() {
       setError(null);
     } catch (error) {
       console.error('Error deleting item:', error);
-      setError('Failed to delete item');
+      setError({
+        type: 'error',
+        message: error.message || 'Failed to delete item'
+      });
     }
   };
 
@@ -73,8 +90,10 @@ function App() {
       const response = await fetch(`${API_URL}/api/session/title`, {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
+        mode: 'cors',
+        credentials: 'omit',
         body: JSON.stringify({ title: sessionTitle })
       });
       
@@ -87,7 +106,10 @@ function App() {
       setError(null);
     } catch (error) {
       console.error('Error updating session title:', error);
-      setError('Failed to update session title');
+      setError({
+        type: 'error',
+        message: error.message || 'Failed to update session title'
+      });
     }
   };
 
@@ -97,13 +119,16 @@ function App() {
       const response = await fetch(`${API_URL}/api/session/end`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
+        mode: 'cors',
+        credentials: 'omit',
         body: JSON.stringify({ title: sessionTitle })
       });
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const data = await response.json();
+        throw new Error(data.error || `HTTP error! status: ${response.status}`);
       }
       
       const result = await response.json();
@@ -115,9 +140,24 @@ function App() {
       setLastSavedTitle(newTitle);
       setCopiedItems([]);
       setError(null);
+      
+      // Show success message
+      const filename = result.filepath.split('/').pop();
+      setError({
+        type: 'success',
+        message: `Session saved as ${filename}`
+      });
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setError(null);
+      }, 3000);
     } catch (error) {
       console.error('Error ending session:', error);
-      setError('Failed to end session');
+      setError({
+        type: 'error',
+        message: error.message || 'Failed to end session'
+      });
     } finally {
       setIsSaving(false);
     }
@@ -165,8 +205,10 @@ function App() {
         </div>
 
         {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 text-sm">
-            {error}
+          <div className={`${
+            error.type === 'success' ? 'bg-green-100 border-green-400 text-green-700' : 'bg-red-100 border-red-400 text-red-700'
+          } px-4 py-3 rounded mb-4 text-sm border`}>
+            {error.message}
           </div>
         )}
 

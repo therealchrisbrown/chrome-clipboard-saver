@@ -1,0 +1,10 @@
+Session: Test1
+Saved: 2024-11-20 20:38:57
+--------------------------------------------------
+
+Time: 2024-11-20 19:38:43
+Source: https://cameronrwolfe.substack.com/p/automatic-prompt-optimization
+Content:
+This overview will primarily study the overlap of optimization and prompt engineering, but we must not forget that these two ideas—optimization and prompt engineering—are also distinct fields of research. By learning about these ideas in isolation, we will understand how the key concepts behind them can be combined to create algorithms for automatically improving the quality of a prompt.
+--------------------------------------------------
+

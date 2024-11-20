@@ -1,15 +1,37 @@
-./frontend/node_modules
-./frontend/dist
+# Dependencies
+node_modules/
+**/node_modules/
 .venv
 __pycache__/
+
+# Build outputs
+**/dist/
+**/build/
 *.pyc
 *.pyo
 *.pyd
+
+# Environment
+.env
+.env.local
+.env.*.local
 .Python
 env/
-build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Misc
+.DS_Store
+*.log
+*.sqlite
+*.db
+
+# Python
 develop-eggs/
-dist/
 downloads/
 eggs/
 .eggs/
@@ -21,3 +43,8 @@ var/
 *.egg-info/
 .installed.cfg
 *.egg
+
+# Frontend
+frontend/.vite
+frontend/dist/
+extension/dist/

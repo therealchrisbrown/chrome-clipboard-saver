@@ -3,7 +3,7 @@ import { Button } from './components/ui/button';
 import { ScrollArea } from './components/ui/scroll-area';
 import { ChevronRight, RefreshCcw, Trash2 } from 'lucide-react';
 
-const API_URL = 'http://localhost:5001';
+const API_URL = "http://localhost:5001";
 
 export default function Sessions() {
   const [sessions, setSessions] = useState([]);
@@ -12,10 +12,23 @@ export default function Sessions() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [expandedSessions, setExpandedSessions] = useState(new Set());
 
   useEffect(() => {
     fetchSessions();
   }, [refreshKey]);
+
+  const toggleSession = (sessionPath) => {
+    setExpandedSessions(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(sessionPath)) {
+        newSet.delete(sessionPath);
+      } else {
+        newSet.add(sessionPath);
+      }
+      return newSet;
+    });
+  };
 
   const fetchSessions = async () => {
     try {
@@ -149,10 +162,12 @@ export default function Sessions() {
               <div key={session.path} className="mb-4">
                 <div
                   className="flex items-center justify-between p-2 bg-gray-100 rounded cursor-pointer hover:bg-gray-200"
-                  onClick={() => fetchFileContent(session.files[0].path)}
+                  onClick={() => toggleSession(session.path)}
                 >
                   <div className="flex items-center">
-                    <ChevronRight className="h-4 w-4 mr-2" />
+                    <ChevronRight 
+                      className={`h-4 w-4 mr-2 transform transition-transform ${expandedSessions.has(session.path) ? 'rotate-90' : ''}`} 
+                    />
                     <span>{session.name}</span>
                   </div>
                   <Button
@@ -164,32 +179,34 @@ export default function Sessions() {
                   </Button>
                 </div>
                 
-                <div className="ml-6 mt-2">
-                  {session.files.map((file) => (
-                    <div
-                      key={file.path}
-                      onClick={() => fetchFileContent(file.path)}
-                      className={`
-                        flex items-center justify-between p-2 rounded cursor-pointer
-                        ${selectedFile === file.path ? 'bg-blue-100' : 'hover:bg-gray-100'}
-                      `}
-                    >
-                      <div className="flex-1">
-                        <div>{file.name}</div>
-                        <div className="text-sm text-gray-500">
-                          {new Date(file.modified * 1000).toLocaleString()}
-                        </div>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => deleteSession(file.path, e)}
+                {expandedSessions.has(session.path) && (
+                  <div className="ml-6 mt-2">
+                    {session.files.map((file) => (
+                      <div
+                        key={file.path}
+                        onClick={() => fetchFileContent(file.path)}
+                        className={`
+                          flex items-center justify-between p-2 rounded cursor-pointer
+                          ${selectedFile === file.path ? 'bg-blue-100' : 'hover:bg-gray-100'}
+                        `}
                       >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
+                        <div className="flex-1">
+                          <div>{file.name}</div>
+                          <div className="text-sm text-gray-500">
+                            {new Date(file.modified * 1000).toLocaleString()}
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => deleteSession(file.path, e)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
             

@@ -5,7 +5,7 @@ import { Button } from './components/ui/button'
 import { Input } from './components/ui/input'
 import { Trash2, ExternalLink, Save, Edit2 } from 'lucide-react'
 
-const API_URL = 'http://localhost:5001';
+const API_URL = "http://localhost:5001";
 
 function App() {
   const [copiedItems, setCopiedItems] = useState([]);

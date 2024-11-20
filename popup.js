@@ -23,7 +23,7 @@ function createCopiedItemElement(item) {
   const deleteBtn = itemDiv.querySelector('.delete-btn');
   deleteBtn.addEventListener('click', async () => {
     try {
-      const response = await fetch(`http://localhost:5000/api/clipboard/${item.id}`, {
+      const response = await fetch(`http://localhost:5001/api/clipboard/${item.id}`, {
         method: 'DELETE'
       });
       
@@ -43,7 +43,7 @@ async function loadCopiedItems() {
   const copiedItemsContainer = document.getElementById('copied-items');
   
   try {
-    const response = await fetch('http://localhost:5000/api/clipboard');
+    const response = await fetch('http://localhost:5001/api/clipboard');
     const items = await response.json();
     
     copiedItemsContainer.innerHTML = ''; // Clear existing items

@@ -7,17 +7,25 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     console.log('From URL:', sourceUrl);
 
     // Send to backend
-    fetch('http://localhost:5000/api/clipboard', {
+    fetch('http://localhost:5001/api/clipboard', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Origin': chrome.runtime.getURL('')
       },
+      mode: 'cors',
+      credentials: 'omit',
       body: JSON.stringify({
         content: text,
         source_url: sourceUrl
       })
     })
-    .then(response => response.json())
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    })
     .then(data => {
       console.log('Success:', data);
       sendResponse({ success: true });
@@ -52,16 +60,22 @@ chrome.action.onClicked.addListener((tab) => {
       sidebar.style.cssText = `
         position: fixed;
         top: 0;
-        right: 0;
+        right: -400px;
         width: 400px;
         height: 100vh;
         border: none;
-        box-shadow: -2px 0 5px rgba(0,0,0,0.2);
-        z-index: 2147483647;
         background: white;
+        box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+        z-index: 10000;
+        transition: right 0.3s ease;
       `;
       
       document.body.appendChild(sidebar);
+      
+      // Animate sidebar in
+      setTimeout(() => {
+        sidebar.style.right = '0';
+      }, 100);
     }
   });
 });

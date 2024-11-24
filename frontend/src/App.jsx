@@ -223,7 +223,7 @@ function App() {
             <p className="text-gray-500 text-center text-sm">No copied items yet</p>
           ) : (
             <div className="space-y-2">
-              {copiedItems.map((item) => (
+              {[...copiedItems].reverse().map((item) => (
                 <Card key={item.id} className="shadow-sm">
                   <CardContent className="p-3">
                     <div className="flex justify-between items-start gap-2">

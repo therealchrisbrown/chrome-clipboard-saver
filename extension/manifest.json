@@ -14,7 +14,8 @@
     "<all_urls>"
   ],
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'; connect-src 'self' http://localhost:5001 https://* http://*"
+    "extension_pages": "default-src 'self' http://localhost:5001; script-src 'self'; style-src 'self' 'sha256-vGQdhYJbTuF+M8iCn1IZCHpdkiICocWHDq4qnQF4Rjw='; connect-src 'self' http://localhost:5001",
+    "content_scripts": "script-src 'self' 'unsafe-inline'; object-src 'self'; style-src 'self' 'unsafe-inline'"
   },
   "background": {
     "service_worker": "background.js",

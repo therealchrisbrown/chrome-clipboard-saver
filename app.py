@@ -15,11 +15,12 @@ app = Flask(__name__)
 # Configure CORS - Allow requests from Chrome extension and localhost
 CORS(app, 
      resources={r"/*": {
-         "origins": ["*"],  # Allow all origins, we'll filter in after_request
+         "origins": ["*"],
          "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-         "allow_headers": ["Content-Type", "Authorization", "Origin"],
-         "supports_credentials": False,  # Changed to False since we're not using credentials
-         "send_wildcard": True
+         "allow_headers": ["Content-Type", "Authorization", "Accept"],
+         "supports_credentials": False,
+         "expose_headers": ["Content-Type", "X-CSRFToken"],
+         "max_age": 3600
      }})
 
 # Configure the SQLite database

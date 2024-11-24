@@ -35,7 +35,8 @@ toggleButton.style.cssText = `
   align-items: center;
   justify-content: center;
   font-size: 20px;
-  transition: transform 0.2s;
+  transition: all 0.3s;
+  transform: translateX(0);
 `;
 
 // Create and style the sessions button
@@ -77,13 +78,17 @@ let sessionsPanelOpen = false;
 // Toggle sidebar when clipboard button is clicked
 toggleButton.addEventListener('click', () => {
   sidebarOpen = !sidebarOpen;
-  sidebar.style.right = sidebarOpen ? '0' : '-400px';
+  sidebar.style.right = sidebarOpen ? '0px' : '-400px';
   buttonContainer.style.right = sidebarOpen ? '400px' : '0';
+  toggleButton.style.transform = sidebarOpen ? 'translateX(-5px)' : 'translateX(0)';
+  toggleButton.style.boxShadow = sidebarOpen ? '-4px 0 8px rgba(0,0,0,0.3)' : '-2px 0 5px rgba(0,0,0,0.2)';
   
   // Close sessions panel if open
   if (sidebarOpen && sessionsPanelOpen) {
     sessionsPanelOpen = false;
     sessionsPanel.style.right = '-400px';
+    sessionsButton.style.transform = 'translateX(0)';
+    sessionsButton.style.boxShadow = '-2px 0 5px rgba(0,0,0,0.2)';
   }
 });
 
@@ -92,11 +97,15 @@ sessionsButton.addEventListener('click', () => {
   sessionsPanelOpen = !sessionsPanelOpen;
   sessionsPanel.style.right = sessionsPanelOpen ? '0' : '-400px';
   buttonContainer.style.right = sessionsPanelOpen ? '400px' : '0';
+  sessionsButton.style.transform = sessionsPanelOpen ? 'translateX(-5px)' : 'translateX(0)';
+  sessionsButton.style.boxShadow = sessionsPanelOpen ? '-4px 0 8px rgba(0,0,0,0.3)' : '-2px 0 5px rgba(0,0,0,0.2)';
   
   // Close sidebar if open
   if (sessionsPanelOpen && sidebarOpen) {
     sidebarOpen = false;
     sidebar.style.right = '-400px';
+    toggleButton.style.transform = 'translateX(0)';
+    toggleButton.style.boxShadow = '-2px 0 5px rgba(0,0,0,0.2)';
   }
 });
 
@@ -112,27 +121,20 @@ document.addEventListener('copy', async (e) => {
     // Get the current URL
     const url = window.location.href;
     
-    // Send the copied text to the background script
-    const response = await fetch('http://localhost:5001/api/clipboard', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Origin': chrome.runtime.getURL('')
-      },
-      mode: 'cors',
-      credentials: 'omit',
-      body: JSON.stringify({
+    // Send message to background script to handle the API call
+    chrome.runtime.sendMessage({
+      action: 'saveClipboard',
+      data: {
         content: text,
         source_url: url
-      })
+      }
+    }, response => {
+      if (response.success) {
+        console.log('Clipboard item saved:', response.data);
+      } else {
+        console.error('Error saving clipboard item:', response.error);
+      }
     });
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    console.log('Clipboard item saved:', data);
     
   } catch (error) {
     console.error('Error saving clipboard item:', error);

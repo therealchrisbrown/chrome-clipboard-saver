@@ -1,7 +1,6 @@
 // Test function to verify script is running
 function testContentScript() {
     console.log('Content script is running!');
-    document.body.style.border = '5px solid red';
 }
 
 console.log('Content script loaded');
